@@ -28,10 +28,10 @@
 #include "parquet/platform.h"
 #include "parquet/types.h"
 
-namespace fastdelta {
 //======from lemire/FastDifferentialCoding:src/fastdelta.c====
 #include <stdint.h>
 #include <stddef.h>
+namespace fastdelta { //namespace added by anieway to avoid clutter
 /***
 * These functions compute fast successive differences, and recover the original
 * values from the fast successive differences (i.e., they compute a prefix sum)
