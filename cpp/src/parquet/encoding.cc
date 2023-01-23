@@ -2303,7 +2303,7 @@ void DeltaBitPackEncoder<DType>::Put(const T* src, int num_values) {
   }
 }
 /**
- * TODO lemire/FastDifferentialCoding (only supports 32bit) version of put 
+ * lemire/FastDifferentialCoding (only supports 32bit) version of put 
 */
 template <>
 void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
@@ -2320,21 +2320,13 @@ void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
   }
   total_value_count_ += num_values;
   while (idx < num_values) {
-    //TODO call encoding function and for data that still fits in current block
     //calculate maximum length that still fits the current block
     int batchLength = std::min(values_per_block_ - values_current_block_, num_values-idx);
-    //TODO call function on input and deltas_ (raw data!)
-    /*
-    UT value = static_cast<UT>(src[idx]);
-    // Calculate deltas. The possible overflow is handled by use of unsigned integers
-    // making subtraction operations well-defined and correct even in case of overflow.
-    // Encoded integers will wrap back around on decoding.
-    // See http://en.wikipedia.org/wiki/Modular_arithmetic#Integers_modulo_n
-    deltas_[values_current_block_] = value - current_value_;
-    current_value_ = value;
-    idx++;
-    values_current_block_++;
-    */
+    //call lemire fast coding function on input and deltas_ (/!\ raw pointers)
+    fastdelta::compute_deltas(input, batchLength, deltas_->data()+values_current_block_,/*starting point*/ current_value_);
+    idx += batchLength;
+    values_current_block_ += batchLength;
+    current_value_ = static_cast<UT>(src[idx]);
     if (values_current_block_ == values_per_block_) {
       FlushBlock();
     }
