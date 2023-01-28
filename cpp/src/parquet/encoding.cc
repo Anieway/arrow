@@ -2307,12 +2307,14 @@ void DeltaBitPackEncoder<DType>::Put(const T* src, int num_values) {
 */
 template <>
 void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
-  const int32_t *input = static_cast<int32_t *>(src);
+  const int32_t *input = src;
   if (num_values == 0) {
-    return;
+    return; 
   }
 
-  int idx = 0; //values processed (this function call)
+  DCHECK(num_values > 0);
+
+  int idx = 0; //values processed (this function call) TODO this does not need to be signed, does it?
   if (total_value_count_ == 0) {
     current_value_ = src[0];
     first_value_ = current_value_;
@@ -2321,9 +2323,9 @@ void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
   total_value_count_ += num_values;
   while (idx < num_values) {
     //calculate maximum length that still fits the current block
-    int batchLength = std::min(values_per_block_ - values_current_block_, num_values-idx);
+    size_t batchLength = std::min(values_per_block_ - values_current_block_, static_cast<unsigned int>(num_values-idx));
     //call lemire fast coding function on input and deltas_ (/!\ raw pointers)
-    fastdelta::compute_deltas(input, batchLength, deltas_->data()+values_current_block_,/*starting point*/ current_value_);
+    fastdelta::compute_deltas(input, batchLength, deltas_.data()+values_current_block_,/*starting point*/ current_value_);
     idx += batchLength;
     values_current_block_ += batchLength;
     current_value_ = static_cast<UT>(src[idx]);
