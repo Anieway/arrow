@@ -2307,7 +2307,7 @@ void DeltaBitPackEncoder<DType>::Put(const T* src, int num_values) {
 */
 template <>
 void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
-  const uint32_t *input = src;
+  const uint32_t *input = static_cast<const uint32_t *>(src);
   if (num_values == 0) {
     return; 
   }
