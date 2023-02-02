@@ -2269,6 +2269,7 @@ class DeltaBitPackEncoder : public EncoderImpl, virtual public TypedEncoder<DTyp
   UT first_value_{0};
   UT current_value_{0};
   ArrowPoolVector<UT> deltas_;
+  ArrowPoolVector<UT> inputFastCoding_; //unsigned for lemire/fastCoding function
   std::shared_ptr<ResizableBuffer> bits_buffer_;
   ::arrow::BufferBuilder sink_;
   ::arrow::bit_util::BitWriter bit_writer_;
@@ -2307,12 +2308,15 @@ void DeltaBitPackEncoder<DType>::Put(const T* src, int num_values) {
 */
 template <>
 void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
-  const uint32_t *input = static_cast<const uint32_t *>(src);
-  if (num_values == 0) {
+    if (num_values == 0) {
     return; 
   }
-
   DCHECK(num_values > 0);
+  //convert input to unsigned for defined overflow behaviour (C++standard §6.2.5/9 & §3.4.3/1)
+  inputFastCoding_.resize(num_values);
+  for(int i=0; i < num_values; ++i) {
+    inputFastCoding_[i] = static_cast<UT>(src[i]);
+  }
 
   int idx = 0; //values processed (this function call) TODO this does not need to be signed, does it?
   if (total_value_count_ == 0) {
@@ -2325,13 +2329,13 @@ void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
     //calculate maximum length that still fits the current block
     size_t batchLength = std::min(values_per_block_ - values_current_block_, static_cast<unsigned int>(num_values-idx));
     //call lemire fast coding function on input and deltas_ (/!\ raw pointers)
-    fastdelta::compute_deltas(input, batchLength, deltas_.data()+values_current_block_,/*starting point*/ current_value_);
+    fastdelta::compute_deltas(inputFastCoding_.data(), batchLength, deltas_.data()+values_current_block_,/*starting point*/ current_value_);
     idx += batchLength;
     values_current_block_ += batchLength;
     current_value_ = static_cast<UT>(src[idx]);
-    if (values_current_block_ == values_per_block_) {
-      FlushBlock();
-    }
+    //block should be full now
+    DCHECK(values_current_block_ == values_per_block_);
+    FlushBlock();
   }
 }
 
