@@ -2325,6 +2325,7 @@ void DeltaBitPackEncoder<Int32Type>::Put(const T* src, int num_values) {
     idx = 1;
   }
   total_value_count_ += num_values;
+  //TODO this does not work like that! as lemire/fastCoding creates 4 distinct delta rows that need to be aligned! (encode only on full mini_blocks?)
   while (idx < num_values) {
     //calculate maximum length that still fits the current block
     size_t batchLength = std::min(values_per_block_ - values_current_block_, static_cast<unsigned int>(num_values-idx));
